@@ -148,6 +148,14 @@ export default class Extension {
         if(!size_changed && windowing.is_related(window)) {
             // Live resizing
             size_changed = true;
+
+            // The interaction between the Drag and Resize creates a race condition on tiling.tile_workspace_windows
+            // With this timeout we are able to get out of the stuck path without influencing the result when the issue doesn't present
+            setTimeout(() => {
+                if (size_changed === true)  
+                    size_changed = false
+            }, 500)
+
             tiling.tile_workspace_windows(window.get_workspace(), window, null, true);
             size_changed = false;
         }
