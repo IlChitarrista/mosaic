@@ -97,8 +97,14 @@ export default class Extension {
         }
     }
     
-    switch_workspace_handler(_, win) {
-        tile_window_workspace(win.meta_window); // Tile when switching to a workspace. Helps to create a more cohesive experience.
+    switch_workspace_handler(_, __, new_workspace_idx) {
+        let n_monitors = global.display.get_n_monitors();
+        setTimeout(() => {
+            for(let monitor = 0; monitor < n_monitors; monitor++) {
+                tiling.tile_workspace_windows(workspace_manager.get_workspace_by_index(new_workspace_idx), false, monitor, true);
+            }
+        }, 10);
+       
     }
 
     size_change_handler(_, win, mode) {
@@ -196,7 +202,7 @@ export default class Extension {
         display_eventids.push(global.display.connect("grab-op-begin", this.grab_op_begin_handler));
         display_eventids.push(global.display.connect("grab-op-end", this.grab_op_end_handler));
         // workspace_man_eventids.push(global.workspace_manager.connect('workspace-added', this.workspace_created_handler));
-        // wm_eventids.push(global.window_manager.connect('switch-workspace', this.switch_workspace_handler));
+        wm_eventids.push(global.window_manager.connect('switch-workspace', this.switch_workspace_handler));
 
         // Sort all workspaces at startup
         setTimeout(this.tile_all_workspaces, 300);
