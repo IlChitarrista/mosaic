@@ -10,12 +10,9 @@ export function rect(x, y, width, height) {
     box.width = width;
     box.height = height;
     boxes.push(box);
-    main.uiGroup.add_actor(box);
 }
 
 export function remove_boxes() {
-    for(let box of boxes)
-        main.uiGroup.remove_actor(box);
     boxes = [];
 }
 
