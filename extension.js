@@ -59,31 +59,6 @@ export default class Extension {
         }
     }
 
-    window_created_handler(_, window) {
-        let timeout = setInterval(() => {
-            let workspace = window.get_workspace();
-            let monitor = window.get_monitor();
-            // Ensure window is valid before performing any actions
-            if( monitor !== null &&
-                window.wm_class !== null &&
-                window.get_compositor_private() &&
-                workspace.list_windows().length !== 0 &&
-                !window.is_hidden())
-            {
-                clearTimeout(timeout);
-                if(windowing.is_related(window)) {
-                    if((window.maximized_horizontally &&
-                        window.maximized_vertically &&
-                        windowing.get_monitor_workspace_windows(workspace, monitor).length > 1) ||
-                        !tiling.window_fits(window, workspace, monitor))
-                        windowing.move_oversized_window(window);
-                    else
-                        tiling.tile_workspace_windows(workspace, window, monitor, true);
-                }
-            }
-        }, 10);
-    }
-
     destroyed_handler(_, win) {
         let window = win.meta_window;
         let monitor = window.get_monitor();
@@ -93,11 +68,17 @@ export default class Extension {
                 null,
                 true);
             let workspace = window.get_workspace()
+            windowing.renavigate(workspace, windowing.get_monitor_workspace_windows(workspace, monitor).length === 0);
         }
-    }
-    
-    switch_workspace_handler(_, win) {
-        tile_window_workspace(win.meta_window); // Tile when switching to a workspace. Helps to create a more cohesive experience.
+    }    
+
+    switch_workspace_handler(_, __, new_workspace_idx) {
+        let n_monitors = global.display.get_n_monitors();
+        setTimeout(() => {
+            for(let monitor = 0; monitor < n_monitors; monitor++) {
+                tiling.tile_workspace_windows(workspace_manager.get_workspace_by_index(new_workspace_idx), false, monitor, true);
+            }
+        }, 10);
     }
 
     size_change_handler(_, win, mode) {
@@ -173,8 +154,68 @@ export default class Extension {
             reordering.stop_drag(window, true);
     }
 
-    workspace_created_handler(_, index) {
-        // tiling.append_workspace(index);
+    window_added = (_, window) => {
+        let timeout = setInterval(() => {
+            let workspace = window.get_workspace();
+            let monitor = window.get_monitor();
+            // Ensure window is valid before performing any actions
+            if( monitor !== null &&
+                window.wm_class !== null &&
+                window.get_compositor_private() &&
+                workspace.list_windows().length !== 0 &&
+                !window.is_hidden())
+            {
+                clearTimeout(timeout);
+                if(windowing.is_related(window)) {
+                    if((window.maximized_horizontally &&
+                        window.maximized_vertically &&
+                        windowing.get_monitor_workspace_windows(workspace, monitor).length > 1) ||
+                        !tiling.window_fits(window, workspace, monitor))
+                        windowing.move_oversized_window(window);
+                    else
+                        tiling.tile_workspace_windows(workspace, window, monitor, true);
+                }
+            }
+        }, 10);
+      }
+
+    window_removed = (workspace) => {
+        let timeout = setInterval(() => {
+            let n_monitors = global.display.get_n_monitors();
+            let windows = workspace.list_windows()
+            if (windows.length >= 1) {
+                let window = windows[0];
+                for(let monitor = 0; monitor < n_monitors; monitor++) {
+                    // Ensure window is valid before performing any actions
+                    if( monitor !== null &&
+                        window.wm_class !== null &&
+                        window.get_compositor_private() &&
+                        workspace.list_windows().length !== 0 &&
+                        !window.is_hidden())
+                    {
+                        clearTimeout(timeout);
+                        if(windowing.is_related(window)) {
+                            if((window.maximized_horizontally &&
+                                window.maximized_vertically &&
+                                windowing.get_monitor_workspace_windows(workspace, monitor).length > 1) ||
+                                !tiling.window_fits(window, workspace, monitor))
+                                windowing.move_oversized_window(window);
+                            else
+                                tiling.tile_workspace_windows(workspace, window, monitor, true);
+                        }
+                     }    
+                   }
+            } else {
+                clearTimeout(timeout);
+                return;
+            }            
+        }, 10);
+    }
+
+    workspace_add_signal = (_, workspace_idx) => {
+        const workspace = workspace_manager.get_workspace_by_index(workspace_idx);
+        workspace.connect("window-added", this.window_added);
+        workspace.connect("window-removed", this.window_removed);
     }
 
     enable() {
@@ -182,12 +223,18 @@ export default class Extension {
         
         wm_eventids.push(global.window_manager.connect('size-change', this.size_change_handler));
         wm_eventids.push(global.window_manager.connect('size-changed', this.size_changed_handler));
-        display_eventids.push(global.display.connect('window-created', this.window_created_handler));
-        wm_eventids.push(global.window_manager.connect('destroy', this.destroyed_handler));
+        // wm_eventids.push(global.window_manager.connect('destroy', this.destroyed_handler));
         display_eventids.push(global.display.connect("grab-op-begin", this.grab_op_begin_handler));
         display_eventids.push(global.display.connect("grab-op-end", this.grab_op_end_handler));
-        // workspace_man_eventids.push(global.workspace_manager.connect('workspace-added', this.workspace_created_handler));
-        // wm_eventids.push(global.window_manager.connect('switch-workspace', this.switch_workspace_handler));
+
+        workspace_man_eventids.push(global.workspace_manager.connect("workspace-added", this.workspace_add_signal))
+
+        let n_workspaces = workspace_manager.get_n_workspaces();
+        for(let i = 0; i < n_workspaces; i++) {
+            let workspace = workspace_manager.get_workspace_by_index(i);
+            workspace.connect("window-added", this.window_added);
+            workspace.connect("window-removed", this.window_removed);
+        }
 
         // Sort all workspaces at startup
         setTimeout(this.tile_all_workspaces, 300);
