@@ -37,9 +37,9 @@ export function drag(meta_window, child_frame, id, windows) {
     else
         tiling.set_tmp_swap(id, target_id);
 
-    if(tiling.tile_workspace_windows(workspace, null, monitor)) {
+    if(tiling.tile_workspace_windows(workspace, null, monitor, true)) {
         tiling.clear_tmp_swap();
-        tiling.tile_workspace_windows(workspace, null, monitor)
+        tiling.tile_workspace_windows(workspace, null, monitor, true)
     }
 
     if(drag_start)
@@ -69,5 +69,5 @@ export function stop_drag(meta_window, skip_apply) {
     if(!skip_apply)
         tiling.apply_tmp_swap(workspace);
     tiling.clear_tmp_swap();
-    tiling.tile_workspace_windows(workspace, null, meta_window.get_monitor());
+    tiling.tile_workspace_windows(workspace, null, meta_window.get_monitor(), true);
 }
