@@ -181,16 +181,18 @@ export default class Extension {
     window_removed = (workspace) => {
         setTimeout(() => {
             let n_monitors = global.display.get_n_monitors();
-            let windows = workspace.list_windows()
+            let windows = workspace.list_windows().filter((window) => {
+                if (!window.minimized)
+                    return window
+            })
+
             if (windows.length >= 1) {
                 let window = windows[0];
                 for(let monitor = 0; monitor < n_monitors; monitor++) {
                     // Ensure window is valid before performing any actions
                     if( monitor !== null &&
                         window.wm_class !== null &&
-                        window.get_compositor_private() &&
-                        workspace.list_windows().length !== 0 &&
-                        !window.minimized)
+                        window.get_compositor_private())
                     {
                         if(windowing.is_related(window)) {
                             if((window.maximized_horizontally &&
