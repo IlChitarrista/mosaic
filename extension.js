@@ -155,7 +155,7 @@ export default class Extension {
     }
 
     window_added = (_, window) => {
-        let timeout = setInterval(() => {
+        setTimeout(() => {
             let workspace = window.get_workspace();
             let monitor = window.get_monitor();
             // Ensure window is valid before performing any actions
@@ -163,9 +163,8 @@ export default class Extension {
                 window.wm_class !== null &&
                 window.get_compositor_private() &&
                 workspace.list_windows().length !== 0 &&
-                !window.is_hidden())
+                !window.minimized)
             {
-                clearTimeout(timeout);
                 if(windowing.is_related(window)) {
                     if((window.maximized_horizontally &&
                         window.maximized_vertically &&
@@ -180,7 +179,7 @@ export default class Extension {
       }
 
     window_removed = (workspace) => {
-        let timeout = setInterval(() => {
+        setTimeout(() => {
             let n_monitors = global.display.get_n_monitors();
             let windows = workspace.list_windows()
             if (windows.length >= 1) {
@@ -191,9 +190,8 @@ export default class Extension {
                         window.wm_class !== null &&
                         window.get_compositor_private() &&
                         workspace.list_windows().length !== 0 &&
-                        !window.is_hidden())
+                        !window.minimized)
                     {
-                        clearTimeout(timeout);
                         if(windowing.is_related(window)) {
                             if((window.maximized_horizontally &&
                                 window.maximized_vertically &&
@@ -204,11 +202,8 @@ export default class Extension {
                                 tiling.tile_workspace_windows(workspace, window, monitor, true);
                         }
                      }    
-                   }
-            } else {
-                clearTimeout(timeout);
-                return;
-            }            
+                }
+            }           
         }, 10);
     }
 

@@ -98,8 +98,8 @@ export function is_primary(window) {
 }
 
 export function is_excluded(meta_window) {
-    if( !is_related(meta_window) ||
-        meta_window.is_hidden()
+    if( !is_related(meta_window) || 
+        meta_window.minimized
     )
         return true;
     return false;
